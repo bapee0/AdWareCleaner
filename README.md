@@ -29,15 +29,15 @@ Limpiar un móvil así a mano significa entrar en **Ajustes > Aplicaciones** y r
 |---|---|
 | **Detectar** | Escanea las apps instaladas por el usuario y muestra las sospechosas, clasificadas por riesgo, con su icono, paquete y fecha de instalación. Permite eliminarlas una a una o todas las de riesgo alto seguidas. |
 | **Rastrear** | Modo *"¿quién ha sido?"*: línea de tiempo de las apps que han abierto pantallas en los últimos 15 min, 1 h o 24 h. Si acaba de salir un anuncio, la app que lo lanzó aparece arriba del todo, aunque tenga un nombre inocente. |
-| **Historial** | Registro de todas las apps eliminadas con la herramienta, con fecha y hora. |
-| **Informe** | Genera un PDF con los datos del dispositivo, las apps eliminadas y las pendientes de revisar, listo para entregar al cliente. |
+| **Historial** | Registro de todas las apps eliminadas con la herramienta, con fecha, hora y desde dónde se eliminaron (Escaneo o Rastreo). |
+| **Informe** | Genera un PDF con los datos del dispositivo, las apps eliminadas (indicando si se detectaron por escaneo o por rastreo) y las pendientes de revisar, listo para entregar al cliente. |
 
 ## Cómo detecta
 
 La detección replica el método manual de un técnico: **buscar palabras clave en el nombre visible** de las apps.
 
 - **Riesgo alto**: nombres que contienen *clean*, *clear*, *boost*, *junk*, *cooler*, *limpia*, *acelera*, o que empiezan por *#*.
-- **Revisar**: *pdf*, *qr*, *scanner*, *escáner*, *linterna*... categorías donde abunda el adware pero también hay apps legítimas.
+- **Revisar**: *pdf*, *qr*, *scanner*, *escáner*, *linterna*, *reader*, *document*, *recovery*, *recupera*... categorías donde abunda el adware pero también hay apps legítimas.
 
 Además destapa un truco habitual: apps que usan un **nombre de paquete de fabricante** (com.google, com.miui, com.samsung...) para pasar desapercibidas. Si una app así no está firmada por el fabricante ni vino con el móvil, se marca como suplantación.
 

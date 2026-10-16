@@ -4,6 +4,12 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
+// Desde qué pestaña se eliminó la app
+enum class Source(val label: String) {
+    ESCANEO("Escaneo"),   // pestaña Detectar
+    RASTREO("Rastreo"),   // pestaña Rastrear
+}
+
 // Una app que se ha eliminado desde esta herramienta
 data class RemovedApp(
     val name: String,
@@ -11,6 +17,7 @@ data class RemovedApp(
     val risk: Risk,
     val reason: String,
     val removedAt: Long,
+    val source: Source = Source.ESCANEO,
 )
 
 // Guarda el historial en las preferencias de la app (JSON).
@@ -31,6 +38,8 @@ class HistoryStore(context: Context) {
                     risk = Risk.valueOf(o.getString("risk")),
                     reason = o.optString("reason"),
                     removedAt = o.getLong("at"),
+                    // Las entradas antiguas no lo guardaban: se asume Escaneo
+                    source = runCatching { Source.valueOf(o.optString("src")) }.getOrDefault(Source.ESCANEO),
                 )
             }
         }.getOrDefault(emptyList())
@@ -52,6 +61,7 @@ class HistoryStore(context: Context) {
                     .put("risk", it.risk.name)
                     .put("reason", it.reason)
                     .put("at", it.removedAt)
+                    .put("src", it.source.name)
             )
         }
         prefs.edit().putString(KEY, arr.toString()).apply()

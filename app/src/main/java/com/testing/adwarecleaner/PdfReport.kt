@@ -61,6 +61,8 @@ private class ReportWriter(private val doc: PdfDocument, private val data: Repor
 
     private val accent = Color.rgb(229, 57, 53)
     private val amber = Color.rgb(230, 140, 0)
+    private val green = Color.rgb(46, 160, 67)
+    private val blue = Color.rgb(30, 110, 200)
     private val dark = Color.rgb(30, 30, 34)
     private val text = Color.rgb(35, 35, 35)
     private val grey = Color.rgb(120, 120, 120)
@@ -78,8 +80,8 @@ private class ReportWriter(private val doc: PdfDocument, private val data: Repor
     private val fill = Paint().apply { style = Paint.Style.FILL }
 
     // Columnas de las tablas: x inicial y ancho
-    private val colX = floatArrayOf(m, m + 165f, m + 375f, m + 440f)
-    private val colW = floatArrayOf(160f, 205f, 60f, 75f)
+    private val colX = floatArrayOf(m, m + 135f, m + 340f, m + 420f)
+    private val colW = floatArrayOf(135f, 205f, 80f, 95f)
 
     private fun paint(size: Float, bold: Boolean = false, c: Int = text, mono: Boolean = false) =
         Paint().apply {
@@ -102,11 +104,16 @@ private class ReportWriter(private val doc: PdfDocument, private val data: Repor
             line("No se ha eliminado ninguna app con esta herramienta.")
         } else {
             table(
-                lastHeader = "Eliminada",
+                headers = listOf("Nombre", "Paquete", "Detectada en", "Eliminada"),
                 rows = data.removed.sortedBy { it.removedAt }.map {
-                    listOf(it.name, it.packageName, it.risk.label, it.removedAt.fmt("dd/MM HH:mm")) to it.risk
+                    TRow(
+                        listOf(it.name, it.packageName, it.source.label, it.removedAt.fmt("dd/MM HH:mm")),
+                        c2 = if (it.source == Source.ESCANEO) accent else blue,
+                        c3 = green,
+                    )
                 }
             )
+            legend()
         }
 
         section("Detectadas sin eliminar (${data.pending.size})")
@@ -114,10 +121,13 @@ private class ReportWriter(private val doc: PdfDocument, private val data: Repor
             !data.scanned -> line("No se ha realizado ningún análisis en esta sesión.")
             data.pending.isEmpty() -> line("Ninguna. El dispositivo ha quedado limpio según el último análisis.")
             else -> table(
-                lastHeader = "Instalada",
+                headers = listOf("Nombre", "Paquete", "Riesgo", "Instalada"),
                 rows = data.pending.map {
                     val date = if (it.installedAt > 0) it.installedAt.fmt("dd/MM/yyyy") else "-"
-                    listOf(it.name, it.packageName, it.risk.label, date) to it.risk
+                    TRow(
+                        listOf(it.name, it.packageName, it.risk.label, date),
+                        c2 = if (it.risk == Risk.ALTO) accent else amber,
+                    )
                 }
             )
         }
@@ -145,7 +155,10 @@ private class ReportWriter(private val doc: PdfDocument, private val data: Repor
         kv("Cliente", data.client.ifBlank { "-" })
         kv("Dispositivo", deviceName())
         kv("Sistema", androidVersion())
-        kv("Resultado", "${data.removed.size} eliminadas · ${data.pending.size} pendientes de revisar")
+        val bySource = data.removed.groupingBy { it.source }.eachCount()
+        val detail = if (data.removed.isEmpty()) "" else
+            " (${bySource[Source.ESCANEO] ?: 0} por escaneo, ${bySource[Source.RASTREO] ?: 0} por rastreo)"
+        kv("Resultado", "${data.removed.size} eliminadas$detail · ${data.pending.size} pendientes de revisar")
         y += 6f
     }
 
@@ -188,11 +201,14 @@ private class ReportWriter(private val doc: PdfDocument, private val data: Repor
         }
     }
 
-    private fun table(lastHeader: String, rows: List<Pair<List<String>, Risk>>) {
-        val headers = listOf("Nombre", "Paquete", "Riesgo", lastHeader)
+    // Fila de tabla: 4 celdas; c2/c3 = color (en negrita) de la 3ª y 4ª columna
+    private class TRow(val cells: List<String>, val c2: Int? = null, val c3: Int? = null)
+
+    private fun table(headers: List<String>, rows: List<TRow>) {
         ensure(40f)
         tableHeader(headers)
-        rows.forEachIndexed { i, (cells, risk) ->
+        rows.forEachIndexed { i, row ->
+            val cells = row.cells
             if (y + 18f > bottom) {
                 newPage()
                 tableHeader(headers)
@@ -203,12 +219,21 @@ private class ReportWriter(private val doc: PdfDocument, private val data: Repor
             }
             canvas.drawText(fit(cells[0], pCell, colW[0]), colX[0] + 4f, y, pCell)
             canvas.drawText(fit(cells[1], pMono, colW[1]), colX[1] + 4f, y, pMono)
-            val riskPaint = paint(9f, bold = true, c = if (risk == Risk.ALTO) accent else amber)
-            canvas.drawText(cells[2], colX[2] + 4f, y, riskPaint)
-            canvas.drawText(cells[3], colX[3] + 4f, y, pCell)
+            canvas.drawText(cells[2], colX[2] + 4f, y, row.c2?.let { paint(9f, bold = true, c = it) } ?: pCell)
+            canvas.drawText(cells[3], colX[3] + 4f, y, row.c3?.let { paint(9f, bold = true, c = it) } ?: pCell)
             y += 18f
         }
         y += 4f
+    }
+
+    // Explica al cliente qué significa cada origen
+    private fun legend() {
+        ensure(30f)
+        y += 2f
+        canvas.drawText("Escaneo: detectada automáticamente por su nombre.", m, y, pSmall)
+        y += 12f
+        canvas.drawText("Rastreo: identificada por su actividad reciente en el dispositivo (p. ej., la app que mostraba anuncios).", m, y, pSmall)
+        y += 10f
     }
 
     private fun tableHeader(headers: List<String>) {

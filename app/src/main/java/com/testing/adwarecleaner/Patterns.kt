@@ -34,6 +34,10 @@ object Patterns {
         "escaner",
         "flashlight",
         "linterna",
+        "reader",       // all reader, doc reader, file reader...
+        "document",     // también pilla "documento", "Lector de documentos"
+        "recovery",     // file recovery, photo recovery...
+        "recupera",     // recuperar, recuperación...
     )
 
     // Prefijos: solo cuentan si el NOMBRE VISIBLE empieza por ellos (riesgo alto).

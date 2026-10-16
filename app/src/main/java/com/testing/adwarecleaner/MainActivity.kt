@@ -24,8 +24,8 @@ class MainActivity : ComponentActivity() {
     // Todo lo que pinta la interfaz
     private var state by mutableStateOf(UiState())
 
-    // App cuyo diálogo de desinstalar está abierto ahora mismo
-    private var pending: Finding? = null
+    // App cuyo diálogo de desinstalar está abierto ahora mismo, y desde qué pestaña
+    private var pending: Pair<Finding, Source>? = null
     // Cola para "Eliminar todas las de riesgo alto"
     private val queue = ArrayDeque<Finding>()
 
@@ -65,10 +65,10 @@ class MainActivity : ComponentActivity() {
         super.onResume()
 
         // ¿Se borró la app que estábamos desinstalando? -> al historial
-        pending?.let { f ->
+        pending?.let { (f, source) ->
             if (!Scanner.isInstalled(this, f.packageName)) {
                 historyStore.add(
-                    RemovedApp(f.name, f.packageName, f.risk, f.reason, System.currentTimeMillis())
+                    RemovedApp(f.name, f.packageName, f.risk, f.reason, System.currentTimeMillis(), source)
                 )
                 state = state.copy(history = historyStore.load())
             }
@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
         // Si hay cola, lanzamos la siguiente; si no, refrescamos todo
         val next = queue.removeFirstOrNull()
         if (next != null) {
-            launchUninstall(next)
+            launchUninstall(next, Source.ESCANEO)
             return
         }
 
@@ -115,20 +115,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun uninstallOne(f: Finding) {
+    private fun uninstallOne(f: Finding, source: Source) {
         queue.clear()
-        launchUninstall(f)
+        launchUninstall(f, source)
     }
 
     private fun uninstallAllHigh() {
         queue.clear()
         queue.addAll(state.findings.filter { it.risk == Risk.ALTO })
-        queue.removeFirstOrNull()?.let { launchUninstall(it) }
+        queue.removeFirstOrNull()?.let { launchUninstall(it, Source.ESCANEO) }
     }
 
     // Abre el diálogo nativo de Android. El usuario confirma cada borrado.
-    private fun launchUninstall(f: Finding) {
-        pending = f
+    private fun launchUninstall(f: Finding, source: Source) {
+        pending = f to source
         startActivity(Intent(Intent.ACTION_DELETE, Uri.parse("package:${f.packageName}")))
     }
 

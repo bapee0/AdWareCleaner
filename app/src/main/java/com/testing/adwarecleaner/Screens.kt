@@ -105,7 +105,7 @@ data class UiState(
 
 class Actions(
     val scan: () -> Unit,
-    val uninstall: (Finding) -> Unit,
+    val uninstall: (Finding, Source) -> Unit,
     val uninstallAllHigh: () -> Unit,
     val clearHistory: () -> Unit,
     val writePdf: (Uri, String, String) -> Unit,
@@ -242,7 +242,7 @@ private fun DetectScreen(state: UiState, actions: Actions) {
                 }
             }
 
-            items(visible, key = { it.packageName }) { f -> FindingCard(f, actions.uninstall) }
+            items(visible, key = { it.packageName }) { f -> FindingCard(f) { actions.uninstall(it, Source.ESCANEO) } }
         }
     }
 }
@@ -517,7 +517,7 @@ private fun TraceScreen(state: UiState, actions: Actions) {
         }
 
         itemsIndexed(entries, key = { i, e -> "$i-${e.packageName}" }) { i, e ->
-            TimelineRow(e, first = i == 0, last = i == entries.lastIndex, onUninstall = actions.uninstall)
+            TimelineRow(e, first = i == 0, last = i == entries.lastIndex, onUninstall = { actions.uninstall(it, Source.RASTREO) })
         }
     }
 }
@@ -701,7 +701,7 @@ private fun HistoryScreen(history: List<RemovedApp>, onClear: () -> Unit) {
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Letter(r.name, color = if (r.risk == Risk.ALTO) RiskHigh else RiskMedium)
+                Letter(r.name, color = Ok)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(r.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -713,7 +713,7 @@ private fun HistoryScreen(history: List<RemovedApp>, onClear: () -> Unit) {
                     )
                 }
                 Spacer(Modifier.width(8.dp))
-                RiskBadge(r.risk)
+                SourceBadge(r.source)
             }
         }
     }
@@ -848,6 +848,22 @@ private fun RiskBadge(risk: Risk) {
     val c = if (risk == Risk.ALTO) RiskHigh else RiskMedium
     Text(
         risk.label.uppercase(),
+        color = c,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Black,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(c.copy(alpha = 0.15f))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    )
+}
+
+// Desde dónde se eliminó: Escaneo (pestaña Detectar) o Rastreo
+@Composable
+private fun SourceBadge(source: Source) {
+    val c = if (source == Source.ESCANEO) Accent else Color(0xFF64B5F6)
+    Text(
+        source.label.uppercase(),
         color = c,
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Black,
